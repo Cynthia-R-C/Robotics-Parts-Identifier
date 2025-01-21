@@ -8,8 +8,11 @@
 
 import requests
 from bs4 import BeautifulSoup
-import selenium
-import re
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.common.action_chains import ActionChains
 
 
 # Making functions to strip the result
@@ -44,7 +47,7 @@ def extract_content(things):
     #     newStrs.append(remove_angle_brackets(str))
     # return newStrs
 
-def make_url_format(strs):
+def make_url_format(strs, stemURL):
     '''list of strings --> list of strings
     Reformats each string in the list into its URL format - used for get_GoBilda_products()'''
     newStrs = []
@@ -57,6 +60,7 @@ def make_url_format(strs):
             newStr = strLow.replace(" ","-")
         else:
             newStr = strLow
+        newStr = stemURL + "/" + newStr    # add the STEM URL
         newStrs.append(newStr)
     return newStrs
 
@@ -101,7 +105,7 @@ def get_REV_products():
         
     return titleList, serialList
 
-def get_GoBilda_products():
+def get_GoBilda_products1():
     '''nothing --> list titles, list serial numbers
     Returns a list of product names and a list of product serial numbers of all products from GoBilda'''
     mainCategories = ["https://www.gobilda.com/structure",
@@ -111,27 +115,89 @@ def get_GoBilda_products():
                       "https://www.gobilda.com/kits",
                       "https://www.gobilda.com/merch"]
     url = "https://www.gobilda.com/structure"           # the URL I'm using to run tests right now
+    productNames = []                                   # list used to store the product names (including serial number)
+    serials = []
     
     # Making a GET request
     r = requests.get(url)     # later extend to loop through all page URLs
-
-    # check status code for response received
-    # success code - 200
-    #print(r)
 
     # Parsing the HTML
     soup = BeautifulSoup(r.content, 'html.parser')
 
     # Get this info from inspecting the webpage
     page = soup.find('ul', class_='productGrid')          # ul class productGrid    
-    #print(s)
     subcategories = extract_content(page.find_all('li', class_='product'))       # Extracts list of strings of subcategory names in this category
-    #print(subcategories)
-    subcatSegments = make_url_format(subcategories)
-    #print(subcatSegments)
+    subURLs = make_url_format(subcategories, 'https://www.gobilda.com')
+        
+    subURL = "https://www.gobilda.com/channel"    # try to extract product name and serial number using this example first
     
-    #for seg in subcatSegments:   # for each of the subcategory URL segments (get back to this later)
-    exSubURL = "https://www.gobilda.com/channel"    # try to extract product name and serial number using this example first
+    # Find product name HTML objs
+    subR = requests.get(subURL)
+    subSoup = BeautifulSoup(subR.content, 'html.parser')
+    subPage = subSoup.find('ul', class_='productGrid')
+    
+    # Find the tags of each object
+    sub2tags = subPage.find_all('a')
+    sub2URLs = []
+    
+    # Get the href attribute of each tag (the link for each sub-subcategory)
+    for tag in sub2tags:
+        sub2URLs.append(tag['href'])
+    
+    # Get the product names
+    for sub2URL in sub2URLs:  
+        sub2R = requests.get(sub2URL)
+        sub2Soup = BeautifulSoup(sub2R.content, 'html.parser')
+        sub2Page = sub2Soup.find('ul', class_='productGrid')    # narrow it down to the products only so it doesn't get the wrong 'a' tags
+        prodInfo = sub2Page.find_all('a')    # get all the tags and attributes again - can access serial # and prod names through attributes
+        
+        # Get the info from each tag attribute
+        for tag in prodInfo:
+            #print(tag.attrs['title'])
+            productNames.append(tag['title'])
+            serials.append(tag['data-sku'])
+    
+    print(productNames)
+    print(serials)
+    
+def get_GoBilda_products2():
+    '''nothing --> list titles, list serial numbers
+    Returns a list of product names and a list of product serial numbers of all products from GoBilda'''
+    
+    # Initialize the driver using Service
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service)
+    
+    # Set URLs
+    categories = ["https://www.gobilda.com/structure",
+                      "https://www.gobilda.com/motion",
+                      "https://www.gobilda.com/electronics"
+                      "https://www.gobilda.com/hardware",
+                      "https://www.gobilda.com/kits",
+                      "https://www.gobilda.com/merch"]
+    url = "https://www.gobilda.com/structure"           # the URL I'm using to run tests right now
+    driver.get(url)    # navigate to the  URL
+    
+    # Find subcategories
+    subcats = driver.find_elements(By.CLASS_NAME, "product")
+    
+    # For each subcategory
+    action = ActionChains(driver)
+    action.click(on_element = subcats[0])  # navigate to a subcategory
+    action.perform()
+    
+    # Find sub-subcategories
+    sub2cats = driver.find_elements(By.CLASS_NAME, "product")
+    #print(sub2cats)
+    
+    # For each sub-subcategory
+    action2 = ActionChains(driver)
+    action2.click(on_element = sub2cats[0])
+    action2.perform()
+    sub2URL = driver.current_url
+    print(sub2URL)   # it's not navigating to the sub2cat, only stops at /channel
+    
+    driver.quit()
 
 # Testing REV
 revTitles, revSerials = get_REV_products()
@@ -140,6 +206,6 @@ revTitles, revSerials = get_REV_products()
 
 # Testing GoBilda
 # bildaTitles, bildaSerials = 
-get_GoBilda_products()
+get_GoBilda_products1()
 # print(bildaTitles)
 # print(bildaSerials)
