@@ -32,6 +32,9 @@ from selenium.webdriver.common.action_chains import ActionChains
     #         pass
     # return newStr               
 #def strip_angle_brackets(strs):
+
+# REV
+
 def extract_content(things):
     '''HTML tag object list things --> string list newThings
     Extracts the text content of a list of HTML tag objects into a list of strings'''
@@ -105,60 +108,106 @@ def get_REV_products():
         
     return titleList, serialList
 
-def get_GoBilda_products1():
+
+# GoBilda
+
+def get_next_GoBilda_URL(currURL):     # NOT DONE - MUST BE REFINED LATER - ASSUMES ALL PRODUCT GRIDS ARE OF CATEGORIES
+    '''String currURL --> list newURLs
+    Returns a list of the URLs to the subcategories linked on the page'''
+    r = requests. get(currURL)
+    soup = BeautifulSoup(r.content, 'html.parser')
+    
+    # Get info from inspecting webpage
+    page = soup.find('ul', class_='productGrid')   # find the right section to comb through
+    tags = page.find_all('a')
+    
+    newURLs = []
+    for tag in tags:
+        newURLs.append(tag['href'])   # href attribute is where URLs are stored
+
+    return newURLs
+
+def get_grid_type(prodGrid):
+    '''HTML object prodGrid --> String gridType
+    Given an HTML object representing a product grid, returns the type
+    of grid it is: either "category" or "product"'''
+    sampleTag = prodGrid.find('a')   # only need to test this for 1 tag because categories and product are not in the same grid
+    return sampleTag['data-card-type']
+    
+
+def get_GoBilda_prod_info(prodPageURL):  # NOT DONE
+    '''String prodPageURL --> list productNames, list productSerials
+    Given a page that may or may not contain products, returns a list of the
+    names and serial numbers of the products on the page'''
+    r = requests. get(currURL)
+    soup = BeautifulSoup(r.content, 'html.parser')
+    
+    productNames = []
+    productSerials = []
+    
+    # Case 1: product grid
+    prodGrid = soup.find_all('ul', class_='productGrid')   # find the right section to comb through
+    for prodGrid in prodGrids:
+        if get_grid_type(prodGrid) == 'product':   # only do this if it is a grid of products
+            tags1 = prodGrid.find_all('a')
+            for tag in tags1:
+                productNames.append(tag['title'])
+                productSerials.append(tag['data-sku'])
+            
+    # Case 2: product table
+    prodTables = soup.find_all('div', class_='tableParent')
+    for prodTable in prodTables:
+        tags2 = prodTable.find_all('a')
+        for tag in tags2:
+            productNames.append(tag['title'])
+            # figure out how to access product serials - different from attribute in product grid
+    
+    return productNames, productSerials
+
+def get_GoBilda_products1():   # NOT DONE
     '''nothing --> list titles, list serial numbers
     Returns a list of product names and a list of product serial numbers of all products from GoBilda'''
     mainCategories = ["https://www.gobilda.com/structure",
                       "https://www.gobilda.com/motion",
                       "https://www.gobilda.com/electronics"
-                      "https://www.gobilda.com/hardware",
-                      "https://www.gobilda.com/kits",
-                      "https://www.gobilda.com/merch"]
+                      "https://www.gobilda.com/hardware"]
     url = "https://www.gobilda.com/structure"           # the URL I'm using to run tests right now
     productNames = []                                   # list used to store the product names (including serial number)
     serials = []
     
-    # Making a GET request
-    r = requests.get(url)     # later extend to loop through all page URLs
-
-    # Parsing the HTML
-    soup = BeautifulSoup(r.content, 'html.parser')
-
-    # Get this info from inspecting the webpage
-    page = soup.find('ul', class_='productGrid')          # ul class productGrid    
-    subcategories = extract_content(page.find_all('li', class_='product'))       # Extracts list of strings of subcategory names in this category
-    subURLs = make_url_format(subcategories, 'https://www.gobilda.com')
+    subURLs = get_next_GoBilda_URL(url)
+    print(subURLs)
         
-    subURL = "https://www.gobilda.com/channel"    # try to extract product name and serial number using this example first
+    # subURL = "https://www.gobilda.com/channel"    # try to extract product name and serial number using this example first
     
-    # Find product name HTML objs
-    subR = requests.get(subURL)
-    subSoup = BeautifulSoup(subR.content, 'html.parser')
-    subPage = subSoup.find('ul', class_='productGrid')
+    # # Find product name HTML objs
+    # subR = requests.get(subURL)
+    # subSoup = BeautifulSoup(subR.content, 'html.parser')
+    # subPage = subSoup.find('ul', class_='productGrid')
     
-    # Find the tags of each object
-    sub2tags = subPage.find_all('a')
-    sub2URLs = []
+    # # Find the tags of each object
+    # sub2tags = subPage.find_all('a')
+    # sub2URLs = []
     
-    # Get the href attribute of each tag (the link for each sub-subcategory)
-    for tag in sub2tags:
-        sub2URLs.append(tag['href'])
+    # # Get the href attribute of each tag (the link for each sub-subcategory)
+    # for tag in sub2tags:
+    #     sub2URLs.append(tag['href'])
     
-    # Get the product names
-    for sub2URL in sub2URLs:  
-        sub2R = requests.get(sub2URL)
-        sub2Soup = BeautifulSoup(sub2R.content, 'html.parser')
-        sub2Page = sub2Soup.find('ul', class_='productGrid')    # narrow it down to the products only so it doesn't get the wrong 'a' tags
-        prodInfo = sub2Page.find_all('a')    # get all the tags and attributes again - can access serial # and prod names through attributes
+    # # Get the product names
+    # for sub2URL in sub2URLs:  
+    #     sub2R = requests.get(sub2URL)
+    #     sub2Soup = BeautifulSoup(sub2R.content, 'html.parser')
+    #     sub2Page = sub2Soup.find('ul', class_='productGrid')    # narrow it down to the products only so it doesn't get the wrong 'a' tags
+    #     prodInfo = sub2Page.find_all('a')    # get all the tags and attributes again - can access serial # and prod names through attributes
         
-        # Get the info from each tag attribute
-        for tag in prodInfo:
-            #print(tag.attrs['title'])
-            productNames.append(tag['title'])
-            serials.append(tag['data-sku'])
+    #     # Get the info from each tag attribute
+    #     for tag in prodInfo:
+    #         #print(tag.attrs['title'])
+    #         productNames.append(tag['title'])
+    #         serials.append(tag['data-sku'])
     
-    print(productNames)
-    print(serials)
+    # print(productNames)
+    # print(serials)
     
 def get_GoBilda_products2():
     '''nothing --> list titles, list serial numbers
