@@ -111,17 +111,24 @@ def get_REV_products():
 
 # GoBilda
 
-def get_next_GoBilda_URL(currURL):     # NOT DONE - MUST BE REFINED LATER - ASSUMES ALL PRODUCT GRIDS ARE OF CATEGORIES
+def get_next_GoBilda_URLs(currURL):
     '''String currURL --> list newURLs
     Returns a list of the URLs to the subcategories linked on the page'''
+    newURLs = []
+    
     r = requests. get(currURL)
     soup = BeautifulSoup(r.content, 'html.parser')
     
     # Get info from inspecting webpage
-    page = soup.find('ul', class_='productGrid')   # find the right section to comb through
-    tags = page.find_all('a')
+    grids = soup.find_all('ul', class_='productGrid')   # find all product grids
+    for grid in grids:
+        if get_grid_type(grid) != 'category':         # remove if it's not a category grid
+            grids.remove(grid)
     
-    newURLs = []
+    # Get URL info
+    for grid in grids:
+    tags = grid.find_all('a')
+
     for tag in tags:
         newURLs.append(tag['href'])   # href attribute is where URLs are stored
 
@@ -133,13 +140,21 @@ def get_grid_type(prodGrid):
     of grid it is: either "category" or "product"'''
     sampleTag = prodGrid.find('a')   # only need to test this for 1 tag because categories and product are not in the same grid
     return sampleTag['data-card-type']
+
+def next_GoBilda_URL(url):   # unfinished
+    '''String url --> list productNames, list productSerials
+    Runs a piece of a recursive function for extracting GoBilda data'''
+    
+    # include part here that checks if next list of URLs is blank: if so, end recursion and return the lists
+    
+    
     
 
-def get_GoBilda_prod_info(prodPageURL):  # NOT DONE
+def get_GoBilda_prod_info(prodPageURL):
     '''String prodPageURL --> list productNames, list productSerials
     Given a page that may or may not contain products, returns a list of the
     names and serial numbers of the products on the page'''
-    r = requests. get(currURL)
+    r = requests.get(currURL)
     soup = BeautifulSoup(r.content, 'html.parser')
     
     productNames = []
@@ -160,7 +175,8 @@ def get_GoBilda_prod_info(prodPageURL):  # NOT DONE
         tags2 = prodTable.find_all('a')
         for tag in tags2:
             productNames.append(tag['title'])
-            # figure out how to access product serials - different from attribute in product grid
+            sku = tag.text.strip()
+            productSerials.append(sku)
     
     return productNames, productSerials
 
