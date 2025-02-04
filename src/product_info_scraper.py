@@ -111,19 +111,26 @@ def get_REV_products():
 
 # GoBilda
 
-def get_next_GoBilda_URL(currURL):     # NOT DONE - MUST BE REFINED LATER - ASSUMES ALL PRODUCT GRIDS ARE OF CATEGORIES
+def get_next_GoBilda_URLs(currURL):
     '''String currURL --> list newURLs
     Returns a list of the URLs to the subcategories linked on the page'''
-    r = requests. get(currURL)
+    newURLs = []
+    
+    r = requests.get(currURL)
     soup = BeautifulSoup(r.content, 'html.parser')
     
     # Get info from inspecting webpage
-    page = soup.find('ul', class_='productGrid')   # find the right section to comb through
-    tags = page.find_all('a')
+    grids = soup.find_all('ul', class_='productGrid')   # find all product grids
+    for grid in grids:
+        if get_grid_type(grid) != 'category':         # remove if it's not a category grid
+            grids.remove(grid)
     
-    newURLs = []
-    for tag in tags:
-        newURLs.append(tag['href'])   # href attribute is where URLs are stored
+    # Get URL info
+    for grid in grids:
+        tags = grid.find_all('a')
+
+        for tag in tags:
+            newURLs.append(tag['href'])   # href attribute is where URLs are stored
 
     return newURLs
 
@@ -134,19 +141,18 @@ def get_grid_type(prodGrid):
     sampleTag = prodGrid.find('a')   # only need to test this for 1 tag because categories and product are not in the same grid
     return sampleTag['data-card-type']
     
-
-def get_GoBilda_prod_info(prodPageURL):  # NOT DONE
+def get_GoBilda_prod_info(prodPageURL):
     '''String prodPageURL --> list productNames, list productSerials
     Given a page that may or may not contain products, returns a list of the
     names and serial numbers of the products on the page'''
-    r = requests. get(currURL)
+    r = requests.get(prodPageURL)
     soup = BeautifulSoup(r.content, 'html.parser')
     
     productNames = []
     productSerials = []
     
     # Case 1: product grid
-    prodGrid = soup.find_all('ul', class_='productGrid')   # find the right section to comb through
+    prodGrids = soup.find_all('ul', class_='productGrid')   # find the right section to comb through
     for prodGrid in prodGrids:
         if get_grid_type(prodGrid) == 'product':   # only do this if it is a grid of products
             tags1 = prodGrid.find_all('a')
@@ -160,7 +166,33 @@ def get_GoBilda_prod_info(prodPageURL):  # NOT DONE
         tags2 = prodTable.find_all('a')
         for tag in tags2:
             productNames.append(tag['title'])
-            # figure out how to access product serials - different from attribute in product grid
+            sku = tag.text.strip()
+            productSerials.append(sku)
+    
+    return productNames, productSerials
+
+def next_GoBilda_URL(url):
+    '''String url --> list productNames, list productSerials
+    Runs a piece of a recursive function for extracting GoBilda data;
+    For a certain url, retrieves product info for that URL and all corresponding 
+    sub-URLs, then returns the information'''
+    
+    # Get product information
+    productNames, productSerials = get_GoBilda_prod_info(url)
+    
+    # Get next URLs
+    newURLs = get_next_GoBilda_URLs(url)
+    
+    # Check if there are no next URLs left on the page - if not then end recursion
+    if len(newURLs) == 0:
+        return productNames, productSerials
+    
+    # If there still are URLs to be run through
+    for newURL in newURLs:
+        # Get product information returned by this recursive function
+        newProdNames, newProdSerials = next_GoBilda_URL(newURL)
+        productNames += newProdNames
+        productSerials += newProdSerials
     
     return productNames, productSerials
 
@@ -171,43 +203,18 @@ def get_GoBilda_products1():   # NOT DONE
                       "https://www.gobilda.com/motion",
                       "https://www.gobilda.com/electronics"
                       "https://www.gobilda.com/hardware"]
-    url = "https://www.gobilda.com/structure"           # the URL I'm using to run tests right now
+    #url = "https://www.gobilda.com/structure"           # the URL I'm using to run tests right now
     productNames = []                                   # list used to store the product names (including serial number)
     serials = []
     
-    subURLs = get_next_GoBilda_URL(url)
-    print(subURLs)
-        
-    # subURL = "https://www.gobilda.com/channel"    # try to extract product name and serial number using this example first
+    for url in mainCategories:
+        newProdNames, newSerials = next_GoBilda_URL(url)
+        productNames += newProdNames
+        serials += newSerials
     
-    # # Find product name HTML objs
-    # subR = requests.get(subURL)
-    # subSoup = BeautifulSoup(subR.content, 'html.parser')
-    # subPage = subSoup.find('ul', class_='productGrid')
+    print(productNames)
+    print(serials)
     
-    # # Find the tags of each object
-    # sub2tags = subPage.find_all('a')
-    # sub2URLs = []
-    
-    # # Get the href attribute of each tag (the link for each sub-subcategory)
-    # for tag in sub2tags:
-    #     sub2URLs.append(tag['href'])
-    
-    # # Get the product names
-    # for sub2URL in sub2URLs:  
-    #     sub2R = requests.get(sub2URL)
-    #     sub2Soup = BeautifulSoup(sub2R.content, 'html.parser')
-    #     sub2Page = sub2Soup.find('ul', class_='productGrid')    # narrow it down to the products only so it doesn't get the wrong 'a' tags
-    #     prodInfo = sub2Page.find_all('a')    # get all the tags and attributes again - can access serial # and prod names through attributes
-        
-    #     # Get the info from each tag attribute
-    #     for tag in prodInfo:
-    #         #print(tag.attrs['title'])
-    #         productNames.append(tag['title'])
-    #         serials.append(tag['data-sku'])
-    
-    # print(productNames)
-    # print(serials)
     
 def get_GoBilda_products2():
     '''nothing --> list titles, list serial numbers
