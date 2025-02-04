@@ -47,7 +47,7 @@ def HELPER_valid_video(video):
 
 
 #Basic helper function that displats an image
-def HELPER_display_helper(image):
+def HELPER_display(image):
     window = 'Image'
     #Display the image in a window called Image
     cv2.imshow(window, image)
@@ -100,7 +100,7 @@ def get_angle_from_line(main_line):
     #tanx = opposite/adjacent
     #tanx = slope
     angle_with_axis = math.atan(slope)
-    return get_angle_from_line
+    return angle_with_axis
     
 
 #Since this background wont change we only need to find it once and capture these contours
@@ -139,15 +139,44 @@ def get_rotation_matrix(center, theta):
     return rotation_matrix
 
 
-#rotate the background about its center depending on the angle
+#rotate the background about its center depending on the angle 
+#might cut off some stuff What is the smallest square?
+#if we rotate around the center then the diagonal is the diameter of the circle
+#square enclosing this diameter is the smallest
 def rotate_background(image, background, angle):
     #find the center of the background
     x,y,w,h = background
+    
     roi = image[y:y+h, x:x+w]
-    center = [w//2, h//2]
-    rotation_mtarix = get_rotation_matrix(center, angle)
+    
+    diagonal = int(math.sqrt(w**2 + h**2))
+    
+    canvas = np.zeros((diagonal, diagonal, roi.shape[2]), dtype=roi.dtype)
+    
+    '''
+    the thing is we want this to be around 0,0
+    we only have diagonal so we know we want to start at diagonal//2 so should start half back half in front 
+    
+    '''
+    
+    xBegin = diagonal//2 - w/2
+    
+    xEnd = diagonal//2 +w/2
+    
+    yBegin = diagonal//2 - h/2
+    
+    yEnd = diagonal//2 + h/2
+        
+    canvas[yBegin:yEnd, xBegin:xEnd] = roi
+    
+    center = (diagonal//2, diagonal//2)
     #
-    rotated_roi = cv2.warpAffine(roi, rotation_mtarix, (w,h))
+    rotation_matrix = get_rotation_matrix(center, angle)
+    #TODO: figure out this constant 
+    k = 100
+    
+    rotated_roi = cv2.warpAffine(canvas, rotation_matrix, (diagonal+k, diagonal+k))
+    
     return rotated_roi
         
 
@@ -185,13 +214,31 @@ def test_find_background():
 def main():
     currentPath = get_current_path();
     uploadDir = currentPath+"/Videos"
+    outputDir = currentPath+"/Output"
+    count = Ref_INT(0)
     create_directory(uploadDir)
+    create_directory(outputDir)
     #TODO: auto from server uploaded from video (from RPI)
     #TODO: (cont) create server and logic + RPI capture device aka camera + wifi
     t = input("Place videos in Videos directory, press a button when done")
-
-
-
+    for video in os.listdir(uploadDir):
+        video_path = os.path.join(uploadDir, video)
+        cap = cv2.VideoCapture(video_path)
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            #cv2.imshow('Cur' frame)
+            background = find_background(frame)
+            line = background_line(frame)
+            theta = get_angle_from_line(line)
+            rotated_roi = rotate_background(frame, background, theta)
+            take_image(rotated_roi, outputDir, count)
+            #const break with x
+            if cv2.waitKey(1) & 0xFF == ord('x'):
+                break
+        
+    
 if __name__ == "__main__":
     main()
     
