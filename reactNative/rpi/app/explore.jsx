@@ -9,7 +9,7 @@ import logo1 from "@/assets/images/logo1.png"
 import bg1 from "@/assets/images/bg1.png"
 import bg2 from "@/assets/images/bg2.png"
 
-const App = () => {
+const explore = () => {
   let [fontsLoaded] = useFonts({
     Orbitron_400Regular,
   });
@@ -25,20 +25,17 @@ const App = () => {
   return (
     <View style={styles.container}>
       <ImageBackground
-      source = {bg2}
+      source = {bg1}
       resizeMode = "cover"
       style = {styles.image}
       >
-      <Text style={styles.title}>Robotics Parts Identifier</Text>
-      <Link href="\explore" style={styles.link}>
-      BEGIN SCAN
-      </Link>
+      <Text style={styles.text}>Camera Section</Text>
       </ImageBackground>
     </View>
   )
 }
 
-export default App
+export default explore
 
 const styles = StyleSheet.create({
   container: {
@@ -52,23 +49,20 @@ const styles = StyleSheet.create({
     resizeMode: 'cover',
     justifyContent: 'center',
   },
-  title: {
+  text: {
     color: 'white',
     fontFamily: 'Orbitron_400Regular',
     fontSize: 45,
     fontWeight: 'bold',
     textAlign: 'center',
-    padding: 50,
-    marginBotton: 120,
   },
   link: {
     color: 'white',
     fontFamily: 'Orbitron_400Regular',
-    fontSize: 20,
+    fontSize: 40,
     fontWeight: 'bold',
     textAlign: 'center',
     textDecorationLine: 'underline',
-    backgroundColor: 'rgba(129, 182, 191, 0.5)',
-    padding: 10,
+    padding: 4,
   }
 })
