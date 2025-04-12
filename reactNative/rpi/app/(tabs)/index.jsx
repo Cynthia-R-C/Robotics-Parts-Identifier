@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ImageBackground, ActivityIndicator } from 'react-native'
+import { View, Text, StyleSheet, ImageBackground, ActivityIndicator, Pressable } from 'react-native'
 import React from 'react'
 import { Link } from 'expo-router';
 
@@ -30,9 +30,13 @@ const App = () => {
       style = {styles.image}
       >
       <Text style={styles.title}>Robotics Parts Identifier</Text>
-      <Link href="\explore" style={styles.link}>
-      BEGIN SCAN
+
+      <Link href="/scan" style={{ marginHorizontal: 'auto' }} asChild>
+      <Pressable style={styles.button}>
+        <Text style={styles.buttonText}>BEGIN SCAN</Text>
+      </Pressable>
       </Link>
+
       </ImageBackground>
     </View>
   )
@@ -69,6 +73,22 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     textDecorationLine: 'underline',
     backgroundColor: 'rgba(129, 182, 191, 0.5)',
+    padding: 10,
+  },
+  button: {
+    height: 60,
+    justifyContent: 'center',
+    borderRadius: 20,
+    backgroundColor: 'rgba(129, 182, 191, 0.75)',
+    padding: 6,
+  },
+  buttonText: {
+    color: 'white',
+    fontFamily: 'Orbitron_400Regular',
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    //backgroundColor: 'rgba(129, 182, 191, 0.5)',
     padding: 10,
   }
 })
