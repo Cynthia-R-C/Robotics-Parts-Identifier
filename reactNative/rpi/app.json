@@ -33,7 +33,15 @@
           "backgroundColor": "#023459"
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Robotics Parts Identifier to access your camera",
+          "microphonePermission": "Allow Robotics Parts Identifier to access your microphone",
+          "recordAudioAndroid": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
